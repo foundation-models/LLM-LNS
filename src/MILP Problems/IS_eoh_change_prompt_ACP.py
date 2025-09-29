@@ -586,6 +586,18 @@ class PROBLEMCONST:
         ### Key question: How to transform the current strategy (string) into runnable code? ###
         ###############################################################################
         try:
+            # Validate code string before execution
+            if not code_string or not isinstance(code_string, str):
+                print("Greedy MILP Error: Invalid code string")
+                return None
+                
+            # Try to compile the code first to catch syntax errors
+            try:
+                compile(code_string, '<string>', 'exec')
+            except SyntaxError as e:
+                print(f"Greedy MILP Error: Syntax error in generated code: {e}")
+                return None
+            
             # Use warnings.catch_warnings() to capture and control warnings produced during code execution
             with warnings.catch_warnings():
                 # Set captured warnings to ignore mode. This means any warnings produced in this code block
@@ -1707,7 +1719,10 @@ class InterfaceEC:
                 future = executor.submit(self.interface_eval.evaluate, code)
                 # Get evaluation result fitness, round it to 5 decimal places, and store it in offspring['objective'].
                 fitness = future.result(timeout=self.timeout)
-                offspring['objective'] = np.round(fitness, 5)
+                if fitness is not None:
+                    offspring['objective'] = np.round(fitness, 5)
+                else:
+                    offspring['objective'] = 1e9  # Set a large value for failed evaluations
                 # Cancel task to release resources.
                 future.cancel()
 
