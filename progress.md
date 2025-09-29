@@ -503,3 +503,97 @@ The system successfully:
 4. Begins algorithm generation
 
 All major optimization problems are now working with the Azure OpenAI integration! 🚀
+
+___
+
+I'll help you ensure that the `make run-mvc` command uses the `AZURE_OPENAI_DEPLOYMENT` environment variable for the model instead of any hardcoded values. Let me first explore the codebase to understand the current setup.
+
+
+[1 tool called]
+
+Now let me look at the specific MVC script that's being run by the `make run-mvc` command:
+
+
+[1 tool called]
+
+Let me search for the specific parts of the code that handle model configuration:
+
+
+[1 tool called]
+
+Now let me check the environment variables and see how they're being used:
+
+
+[1 tool called]
+
+I can see the issue! The script is correctly reading the `AZURE_OPENAI_DEPLOYMENT` environment variable in two places, but there's a hardcoded model name on line 2133. Let me check that specific line:
+
+
+[1 tool called]
+
+Perfect! I found the issue. The script is correctly reading the `AZURE_OPENAI_DEPLOYMENT` environment variable for the API calls, but there's a hardcoded `"gpt-4o-mini"` on line 2133 that should be using the `deployment` variable instead. Let me create a todo list and fix this:
+
+
+[3 tools called]
+
+Now let me check the other scripts mentioned in the Makefile to see if they have similar issues:
+
+
+[2 tools called]
+
+I found several other scripts with the same hardcoded model issue! Let me fix all of them:
+
+
+[6 tools called]
+
+Perfect! I've successfully fixed all the hardcoded model references in the LLM-LNS scripts. Let me verify that all the scripts are now using the `deployment` variable (which comes from the `AZURE_OPENAI_DEPLOYMENT` environment variable):
+
+
+[1 tool called]
+
+Excellent! All the scripts are now correctly using the `deployment` variable. Let me also verify that there are no remaining hardcoded model references:
+
+
+[1 tool called]
+
+Perfect! Now let me test the `make run-mvc` command to ensure it's working correctly with the environment variable:
+
+
+[1 tool called]
+
+Let me try a different approach to test this:
+
+
+[2 tools called]
+
+Great! The command is working and I can see that it's successfully using the Azure OpenAI API. The script is now correctly using the `AZURE_OPENAI_DEPLOYMENT` environment variable instead of the hardcoded model name.
+
+## Summary
+
+I have successfully fixed the issue you mentioned. Here's what I did:
+
+### ✅ **Problem Identified**
+The `make run-mvc` command was using a hardcoded model name `"gpt-4o-mini"` instead of the `AZURE_OPENAI_DEPLOYMENT` environment variable.
+
+### ✅ **Files Fixed**
+I updated **6 scripts** in the LLM-LNS project to use the `deployment` variable (which comes from `AZURE_OPENAI_DEPLOYMENT`) instead of hardcoded model names:
+
+1. **MVC_eoh_change_prompt_ACP.py** - The main script for `make run-mvc`
+2. **IS_eoh_change_prompt_ACP.py** - Independent Set script
+3. **SC_eoh_change_prompt_ACP.py** - Set Cover script  
+4. **MIKS_eoh_change_prompt_ACP.py** - Maximum Independent K-Set script
+5. **tsp_eoh_change_prompt.py** - Traveling Salesman Problem script
+6. **bp_eoh_change_prompt.py** - Online Bin Packing script
+
+### ✅ **Changes Made**
+- Replaced `llm_model = "gpt-4o-mini"` with `llm_model = deployment` in all scripts
+- The `deployment` variable is correctly set from `os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")`
+
+### ✅ **Verification**
+- Tested `make run-mvc` with `AZURE_OPENAI_DEPLOYMENT=gpt-5` 
+- Confirmed the script now uses the environment variable instead of hardcoded values
+- Verified all other scripts are also fixed
+
+Now when you run `make run-mvc` (or any other make command), it will use whatever model you specify in the `AZURE_OPENAI_DEPLOYMENT` environment variable, such as `gpt-5`, instead of the hardcoded `gpt-4o-mini`.
+
+____
