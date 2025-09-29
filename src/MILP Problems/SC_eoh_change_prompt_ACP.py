@@ -513,8 +513,10 @@ class PROBLEMCONST():
                 #print("after", parts, time.time() - begin_time)
                 indices = np.argsort(neighbor_score)[::-1]
                 color = np.zeros(n)
-                for i in range(n // parts):
-                    color[indices[i]] = 1
+                # Safety check to prevent division by zero
+                if parts > 0:
+                    for i in range(n // parts):
+                        color[indices[i]] = 1
                 if(self.set_time - (time.time() - begin_time) <= 0):
                     break
                 new_sol, now_val, now_flag = self.Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, min(self.set_time - (time.time() - begin_time), self.set_time / 5), obj_type, lower_bound, upper_bound, value_type, now_sol, color)
@@ -569,6 +571,9 @@ class PROBLEMCONST():
             traceback.print_exc()
             results = [1e9]
         
+        # Safety check to prevent division by zero
+        if len(results) == 0:
+            return 1e9
         return sum(results) / len(results)
 
 
@@ -1982,7 +1987,8 @@ class EOH:
                         if off['objective'] < -cross_operators[i]["number"][0]:
                             heapq.heapreplace(cross_operators[i]["number"], -off['objective'])  # Replace heap top element
                         
-                    cross_operators[i]["objective"] = -sum(cross_operators[i]["number"]) / len(cross_operators[i]["number"])
+                    if cross_operators[i]["number"]: # Ensure number is not empty to avoid division by zero
+                        cross_operators[i]["objective"] = -sum(cross_operators[i]["number"]) / len(cross_operators[i]["number"])
                 # if is_add:
                 #     data = {}
                 #     for i in range(len(parents)):
@@ -2016,7 +2022,8 @@ class EOH:
                         if off['objective'] < -variation_operators[i]["number"][0]:
                             heapq.heapreplace(variation_operators[i]["number"], -off['objective'])  # Replace heap top element
                         
-                    variation_operators[i]["objective"] = -sum(variation_operators[i]["number"]) / len(variation_operators[i]["number"])
+                    if variation_operators[i]["number"]: # Ensure number is not empty to avoid division by zero
+                        variation_operators[i]["objective"] = -sum(variation_operators[i]["number"]) / len(variation_operators[i]["number"])
                 # if is_add:
                 #     data = {}
                 #     for i in range(len(parents)):

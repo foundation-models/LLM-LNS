@@ -1,5 +1,5 @@
 {
-     "generation": 0,
+     "generation": 2,
      "population": [
           {
                "algorithm": "Compute a per-variable neighborhood score by blending normalized objective gain if flipped, pressure from tight constraints and variable degree, correlation smoothing across variables sharing constraints, diversification via distance from the initial solution, and small randomized boosts concentrated on tight constraints, then return these scores to guide LNS relaxation.",
@@ -52,8 +52,11 @@
                ]
           }
      ],
-     "worst": [],
+     "worst": [
+          1000000000.0,
+          1000000000.0
+     ],
      "change_flag": 0,
      "last": -1,
-     "timestamp": 1759112469.0628626
+     "timestamp": 1759113469.771756
 }
