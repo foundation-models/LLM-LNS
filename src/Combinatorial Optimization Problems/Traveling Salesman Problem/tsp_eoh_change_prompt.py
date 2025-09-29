@@ -1829,8 +1829,8 @@ paras = Paras()
 # Set parameters
 paras.set_paras(method = "eoh",    # ['ael','eoh']
                 problem = "tsp_construct", #['tsp_construct','bp_online']
-                llm_api_endpoint = "your_llm_endpoint", # Set your LLM endpoint
-                llm_api_key = "your_api_key",   # Set your key
+                llm_api_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "your_llm_endpoint"), # Set your LLM endpoint
+                llm_api_key = os.getenv("AZURE_OPENAI_API_KEY", "your_api_key"),   # Set your key
                 llm_model = "gpt-4o-mini",
                 ec_pop_size = 4, # Number of samples in each population
                 ec_n_pop = 20,  # Number of populations
