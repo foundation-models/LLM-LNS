@@ -519,8 +519,14 @@ class PROBLEMCONST:
                 #print("after", parts, time.time() - begin_time)
                 indices = np.argsort(neighbor_score)[::-1]
                 color = np.zeros(n)
-                for i in range(n // parts):
-                    color[indices[i]] = 1
+                # Safety check to prevent division by zero
+                if parts > 0:
+                    for i in range(n // parts):
+                        color[indices[i]] = 1
+                else:
+                    # If parts is 0, select all nodes
+                    for i in range(n):
+                        color[indices[i]] = 1
                 if(self.set_time - (time.time() - begin_time) <= 0):
                     break
                 new_sol, now_val, now_flag = self.Gurobi_solver(n, m, k, site, value, constraint, constraint_type, coefficient, min(self.set_time - (time.time() - begin_time), self.set_time / 5), obj_type, lower_bound, upper_bound, value_type, now_sol, color)
@@ -528,7 +534,7 @@ class PROBLEMCONST:
                     continue
                 now_sol = new_sol
                 turn_ans.append(now_val)
-                if(len(turn_ans) > 3 and abs(turn_ans[-1] - turn_ans[-3]) <= self.epsilon *  turn_ans[-1] and parts >= 3):
+                if(len(turn_ans) > 3 and abs(turn_ans[-1] - turn_ans[-3]) <= self.epsilon *  turn_ans[-1] and parts > 1):
                     parts -= 1
             return(turn_ans[-1])
         except Exception as e:
@@ -575,7 +581,11 @@ class PROBLEMCONST:
             traceback.print_exc()
             results = [1e9]
         
-        return sum(results) / len(results)
+        # Safety check to prevent division by zero
+        if len(results) > 0:
+            return sum(results) / len(results)
+        else:
+            return 1e9  # Return a large penalty value if no results
 
 
     def evaluate(self, code_string):
@@ -1748,9 +1758,10 @@ class InterfaceEC:
 class EOH:
 
     # Initialization
-    def __init__(self, paras, problem, select, manage, **kwargs):
+    def __init__(self, paras, problem, select, manage, clear_checkpoint=False, **kwargs):
 
-        self.prob = problem      # Define the problem
+        self.prob = problem
+        self.clear_checkpoint_flag = clear_checkpoint      # Define the problem
         self.select = select     # Define parent selection method
         self.manage = manage     # Define population management method
         
@@ -1811,6 +1822,43 @@ class EOH:
                         print("duplicated result, retrying ... ")
             population.append(off)
     
+    def save_checkpoint(self, population, generation, cross_operators, variation_operators, worst, change_flag, last):
+        """Save current state to checkpoint file"""
+        checkpoint_data = {
+            'generation': generation,
+            'population': population,
+            'cross_operators': cross_operators,
+            'variation_operators': variation_operators,
+            'worst': worst,
+            'change_flag': change_flag,
+            'last': last,
+            'timestamp': time.time()
+        }
+        checkpoint_file = self.output_path + "/checkpoint.json"
+        with open(checkpoint_file, 'w') as f:
+            json.dump(checkpoint_data, f, indent=5)
+        print(f"Checkpoint saved at generation {generation}")
+    
+    def load_checkpoint(self):
+        """Load state from checkpoint file if it exists"""
+        checkpoint_file = self.output_path + "/checkpoint.json"
+        if os.path.exists(checkpoint_file):
+            try:
+                with open(checkpoint_file, 'r') as f:
+                    checkpoint_data = json.load(f)
+                print(f"Checkpoint loaded from generation {checkpoint_data['generation']}")
+                return checkpoint_data
+            except Exception as e:
+                print(f"Error loading checkpoint: {e}")
+                return None
+        return None
+    
+    def clear_checkpoint(self):
+        """Clear checkpoint file"""
+        checkpoint_file = self.output_path + "/checkpoint.json"
+        if os.path.exists(checkpoint_file):
+            os.remove(checkpoint_file)
+            print("Checkpoint cleared")
 
     # Run EOH
     def run(self):
@@ -1831,39 +1879,57 @@ class EOH:
                                    timeout = self.timeout, use_numba=self.use_numba
                                    )
 
-        # Initialize population
-        cross_operators = []
-        variation_operators = []
-        print("creating initial prompt:")
-        cross_operators = interface_promt_cross.population_generation("initial_cross")
-        #cross_operators = self.manage.population_management(cross_operators, self.pop_size_cross)
-        variation_operators = interface_promt_variation.population_generation("initial_variation")
-        #variation_operators = self.manage.population_management(variation_operators, self.pop_size_variation)
-        print(f"Prompt initial: ")
-        
-        for prompt in cross_operators:
-            print("Cross Prompt: ", prompt['prompt'])
-        for prompt in variation_operators:
-            print("Variation Prompt: ", prompt['prompt'])
-        print("initial population has been created!")
+        # Try to load checkpoint first (unless clear_checkpoint is set)
+        checkpoint_data = None
+        if not self.clear_checkpoint_flag:
+            checkpoint_data = self.load_checkpoint()
+        if checkpoint_data:
+            print("Resuming from checkpoint...")
+            population = checkpoint_data['population']
+            cross_operators = checkpoint_data['cross_operators']
+            variation_operators = checkpoint_data['variation_operators']
+            worst = checkpoint_data['worst']
+            change_flag = checkpoint_data['change_flag']
+            last = checkpoint_data['last']
+            n_start = checkpoint_data['generation'] + 1
+            print(f"Resuming from generation {n_start}")
+        else:
+            # Initialize population
+            cross_operators = []
+            variation_operators = []
+            print("creating initial prompt:")
+            cross_operators = interface_promt_cross.population_generation("initial_cross")
+            #cross_operators = self.manage.population_management(cross_operators, self.pop_size_cross)
+            variation_operators = interface_promt_variation.population_generation("initial_variation")
+            #variation_operators = self.manage.population_management(variation_operators, self.pop_size_variation)
+            print(f"Prompt initial: ")
+            
+            for prompt in cross_operators:
+                print("Cross Prompt: ", prompt['prompt'])
+            for prompt in variation_operators:
+                print("Variation Prompt: ", prompt['prompt'])
+            print("initial population has been created!")
 
 
-        print("=======================================")
-        population = []
-        print("creating initial population:")
-        population = interface_ec.population_generation()
-        population = self.manage.population_management(population, self.pop_size)
+            print("=======================================")
+            population = []
+            print("creating initial population:")
+            population = interface_ec.population_generation()
+            population = self.manage.population_management(population, self.pop_size)
 
-        print(f"Pop initial: ")
-        for off in population:
-            print(" Obj: ", off['objective'], end="|")
-        print()
-        print("initial population has been created!")
-        # Save generated population to file
-        filename = self.output_path + "/results/pops/population_generation_0.json"
-        with open(filename, 'w') as f:
-            json.dump(population, f, indent=5)
-        n_start = 0
+            print(f"Pop initial: ")
+            for off in population:
+                print(" Obj: ", off['objective'], end="|")
+            print()
+            print("initial population has been created!")
+            # Save generated population to file
+            filename = self.output_path + "/results/pops/population_generation_0.json"
+            with open(filename, 'w') as f:
+                json.dump(population, f, indent=5)
+            n_start = 0
+            worst = []
+            change_flag = 0
+            last = -1
 
         print("=======================================")
 
@@ -2026,6 +2092,9 @@ class EOH:
                 print(str(population[i]['objective']) + " ", end="")
             worst.append(population[-1]['objective'])
             print()
+            
+            # Save checkpoint at the end of each generation
+            self.save_checkpoint(population, pop, cross_operators, variation_operators, worst, change_flag, last)
 
 
 class Methods:
@@ -2059,7 +2128,7 @@ class Methods:
     def get_method(self):
         # Must run EOH, right?
         if self.paras.method == "eoh":   
-            return EOH(self.paras,self.problem,self.select,self.manage)
+            return EOH(self.paras,self.problem,self.select,self.manage, clear_checkpoint=clear_checkpoint)
         else:
             print("method "+self.method+" has not been implemented!")
             exit()
@@ -2102,11 +2171,19 @@ class EVOL:
         print("----------------------------------------- ")
         print("---     EoH successfully finished !   ---")
         print("-----------------------------------------")
+        
+        # Clear checkpoint on successful completion
+        if hasattr(method, 'clear_checkpoint'):
+            method.clear_checkpoint()
 
 
 
 # Parameter Initialization #
 paras = Paras() 
+
+# Check for checkpoint control argument
+import sys
+clear_checkpoint = "--clear-checkpoint" in sys.argv or "--reset" in sys.argv
 
 # Set Parameters #
 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "your_llm_endpoint")

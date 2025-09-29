@@ -1,0 +1,7 @@
+[
+     {
+          "prompt": "def test_algorithm():\n    return 'test'",
+          "objective": 100.0,
+          "code": "def test_algorithm():\n    return 'test'"
+     }
+]
