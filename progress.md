@@ -1305,4 +1305,293 @@ The `IS_eoh_change_prompt_ACP.py` file now has the same checkpoint functionality
 
 ████████████████████████████████████████████████████
 
+I'll apply the same checkpoint functionality to the `MIKS_eoh_change_prompt_ACP.py` file. Let me start by creating a todo list and then implementing the changes.
 
+
+[2 tools called]
+
+Now let me start by updating the EOH class initialization in the MIKS file:
+
+
+[2 tools called]
+
+Now I'll add the checkpoint methods after the add2pop_prompt method:
+
+
+[2 tools called]
+
+Now I need to modify the run method to support checkpoint loading and saving. Let me first find the current run method:
+
+
+[1 tool called]
+
+Now I need to replace the initialization part of the run method to support checkpoint loading:
+
+
+[1 tool called]
+
+Now I need to add checkpoint saving to the main loop. Let me find where the loop ends and add checkpoint saving:
+
+
+[1 tool called]
+
+Let me find the exact location where I need to add checkpoint saving:
+
+
+[1 tool called]
+
+Now I'll add checkpoint saving after the population saving:
+
+
+[2 tools called]
+
+Now I need to update the EVOL class to pass the clear_checkpoint parameter and clear checkpoint on completion:
+
+
+[1 tool called]
+
+Now I need to store the clear_checkpoint parameter and pass it to the Methods class:
+
+
+[1 tool called]
+
+Now I need to update the Methods class to accept and pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to update the get_method method to pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to update the EVOL run method to pass the clear_checkpoint parameter to the Methods class:
+
+
+[2 tools called]
+
+Now I need to add command line argument parsing for the --clear-checkpoint and --reset flags. Let me find the main execution section:
+
+
+[1 tool called]
+
+Now I'll add command line argument parsing and pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to pass the clear_checkpoint parameter to the EVOL initialization:
+
+
+[2 tools called]
+
+Now let me check for any linting errors in the MIKS file:
+
+
+[1 tool called]
+
+I need to fix the undefined `deployment` variable. Let me check what's missing:
+
+
+[1 tool called]
+
+I need to add the deployment variable definition. Let me fix this:
+
+
+[1 tool called]
+
+Now let me check the lints again to see if the deployment issue is fixed:
+
+
+[1 tool called]
+
+Great! The deployment issue is fixed. The remaining linter errors are just import warnings for external dependencies, which is expected and not a problem.
+
+## Summary
+
+I have successfully applied the same checkpoint functionality to the `MIKS_eoh_change_prompt_ACP.py` file. Here's what was implemented:
+
+### **Changes Made to MIKS_eoh_change_prompt_ACP.py:**
+
+1. **Added Checkpoint Parameter to EOH Class**
+   - Modified the `__init__` method to accept a `clear_checkpoint` parameter
+   - Added `self.clear_checkpoint_flag` to track checkpoint clearing behavior
+
+2. **Added Checkpoint Management Methods**
+   - **`save_checkpoint()`**: Saves current state (population, generation, operators, etc.) to a JSON file
+   - **`load_checkpoint()`**: Loads state from checkpoint file if it exists
+   - **`clear_checkpoint()`**: Removes checkpoint file
+
+3. **Modified the Run Method**
+   - Added checkpoint loading logic at the beginning of the run method
+   - If checkpoint exists and `clear_checkpoint` is False, resume from checkpoint
+   - Otherwise, initialize normally
+   - Added checkpoint saving after each generation
+
+4. **Updated EVOL Class**
+   - Added `clear_checkpoint` parameter to `__init__` method
+   - Pass the parameter through to the Methods class
+   - Clear checkpoint on successful completion
+
+5. **Updated Methods Class**
+   - Added `clear_checkpoint` parameter to `__init__` method
+   - Pass the parameter to the EOH class
+
+6. **Added Command Line Argument Parsing**
+   - Added support for `--clear-checkpoint` and `--reset` flags
+   - These flags force the system to start fresh instead of resuming from checkpoint
+
+7. **Fixed Missing Variable**
+   - Added missing `deployment` variable definition
+
+### **Key Features:**
+
+- **Automatic Checkpointing**: Saves state after each generation
+- **Resume Capability**: Can resume from the last checkpoint if interrupted
+- **Manual Reset**: Use `--clear-checkpoint` or `--reset` flags to start fresh
+- **Automatic Cleanup**: Clears checkpoint on successful completion
+
+The MIKS file now has the same checkpoint functionality as the MVC file, allowing for robust long-running experiments that can be interrupted and resumed without losing progress.
+
+
+████████████████████████████████████████████████████
+
+I'll apply the same checkpoint functionality to the `SC_eoh_change_prompt_ACP.py` file. Let me start by creating a todo list and then implementing the changes.
+
+
+[2 tools called]
+
+Now let me start by updating the EOH class initialization in the SC file:
+
+
+[2 tools called]
+
+Now I'll add the checkpoint methods after the add2pop_prompt method:
+
+
+[2 tools called]
+
+Now I need to modify the run method to support checkpoint loading and saving. Let me first find the current run method:
+
+
+[1 tool called]
+
+Now I need to replace the initialization part of the run method to support checkpoint loading:
+
+
+[1 tool called]
+
+Now I need to add checkpoint saving to the main loop. Let me find where the loop ends and add checkpoint saving:
+
+
+[1 tool called]
+
+Let me find the exact location where I need to add checkpoint saving:
+
+
+[1 tool called]
+
+Now I'll add checkpoint saving after the population saving:
+
+
+[2 tools called]
+
+Now I need to update the EVOL class to pass the clear_checkpoint parameter and clear checkpoint on completion:
+
+
+[1 tool called]
+
+Now I need to store the clear_checkpoint parameter and pass it to the Methods class:
+
+
+[1 tool called]
+
+Now I need to update the Methods class to accept and pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to update the get_method method to pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to update the EVOL run method to pass the clear_checkpoint parameter to the Methods class:
+
+
+[2 tools called]
+
+Now I need to add command line argument parsing for the --clear-checkpoint and --reset flags. Let me find the main execution section:
+
+
+[1 tool called]
+
+Now I'll add command line argument parsing and pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to pass the clear_checkpoint parameter to the EVOL initialization:
+
+
+[1 tool called]
+
+Now I need to add the missing deployment variable definition:
+
+
+[2 tools called]
+
+Now let me check for any linting errors in the SC file:
+
+
+[1 tool called]
+
+Perfect! Now let me create a summary of the changes I made to transform the `SC_eoh_change_prompt_ACP.py` file to work the same way as the other files with checkpoint functionality:
+
+## Summary of Changes Made to SC_eoh_change_prompt_ACP.py
+
+I have successfully modified the `SC_eoh_change_prompt_ACP.py` file to work the same way as the other files by adding checkpoint functionality. Here are the key changes:
+
+### **Changes Made:**
+
+1. **Added Checkpoint Parameter to EOH Class**
+   - Modified the `__init__` method to accept a `clear_checkpoint` parameter
+   - Added `self.clear_checkpoint_flag` to track checkpoint clearing behavior
+
+2. **Added Checkpoint Management Methods**
+   - **`save_checkpoint()`**: Saves current state (population, generation, operators, etc.) to a JSON file
+   - **`load_checkpoint()`**: Loads state from checkpoint file if it exists
+   - **`clear_checkpoint()`**: Removes checkpoint file
+
+3. **Modified the Run Method**
+   - Added checkpoint loading logic at the beginning of the run method
+   - If checkpoint exists and `clear_checkpoint` is False, resume from checkpoint
+   - Otherwise, initialize normally
+   - Added checkpoint saving after each generation
+
+4. **Updated EVOL Class**
+   - Added `clear_checkpoint` parameter to `__init__` method
+   - Pass the parameter through to the Methods class
+   - Clear checkpoint on successful completion
+
+5. **Updated Methods Class**
+   - Added `clear_checkpoint` parameter to `__init__` method
+   - Pass the parameter to the EOH class
+
+6. **Added Command Line Argument Parsing**
+   - Added support for `--clear-checkpoint` and `--reset` flags
+   - These flags force the system to start fresh instead of resuming from checkpoint
+
+7. **Fixed Missing Variable**
+   - Added missing `deployment` variable definition
+
+### **Key Features:**
+
+- **Automatic Checkpointing**: Saves state after each generation
+- **Resume Capability**: Can resume from the last checkpoint if interrupted
+- **Manual Reset**: Use `--clear-checkpoint` or `--reset` flags to start fresh
+- **Automatic Cleanup**: Clears checkpoint on successful completion
+
+The SC file now has the same checkpoint functionality as the MVC and MIKS files, allowing for robust long-running experiments that can be interrupted and resumed without losing progress. All three files (MVC, MIKS, and SC) now have consistent checkpoint functionality.
+
+████████████████████████████████████████████████████
