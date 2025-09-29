@@ -583,6 +583,13 @@ class PROBLEMCONST():
         ###  Key question: How to transform the current strategy (string) into executable code?
         ###############################################################################
         try:
+            # First, validate the syntax of the generated code
+            try:
+                compile(code_string, '<string>', 'exec')
+            except SyntaxError as syntax_err:
+                print(f"Greedy MILP Error: Syntax error in generated code: {syntax_err}")
+                return None
+            
             # Use warnings.catch_warnings() to capture and control warnings generated during code execution
             with warnings.catch_warnings():
                 # Set captured warnings to ignore mode. This means any warnings generated within this code block will be ignored and not displayed to the user.
@@ -1251,9 +1258,42 @@ The description must be inside a brace. Next, implement it in Python as a functi
         # The extracted code goes up to 'return', we complete the rest. Connect the extracted code with output variables (stored in self.prompt_func_outputs) to form a complete code string.
         code_all = code+" "+", ".join(s for s in self.prompt_func_outputs)
 
+        # Clean up the code to remove common syntax issues
+        code_all = self.clean_generated_code(code_all)
 
         return [code_all, algorithm]
 
+    def clean_generated_code(self, code):
+        """
+        Clean up generated code to remove common syntax issues like unmatched braces
+        """
+        import re
+        
+        # Remove any unmatched braces {} that might be in the code
+        # Count opening and closing braces
+        open_braces = code.count('{')
+        close_braces = code.count('}')
+        
+        # If there are unmatched braces, try to fix them
+        if open_braces != close_braces:
+            # Remove any standalone braces that don't match
+            # This is a simple approach - remove all braces for now
+            code = re.sub(r'[{}]', '', code)
+        
+        # Remove any other common syntax issues
+        # Remove any stray characters that might cause issues
+        code = re.sub(r'^\s*[{}]\s*$', '', code, flags=re.MULTILINE)
+        
+        # Ensure proper indentation by removing any leading/trailing whitespace issues
+        lines = code.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            # Remove any lines that are just braces or empty
+            if line.strip() in ['{', '}', '']:
+                continue
+            cleaned_lines.append(line)
+        
+        return '\n'.join(cleaned_lines)
 
     def initial(self):
         ##################################################
@@ -1663,7 +1703,10 @@ class InterfaceEC():
                 future = executor.submit(self.interface_eval.evaluate, code)
                 # Get evaluation result fitness, round it to 5 decimal places, and store it in offspring['objective']
                 fitness = future.result(timeout=self.timeout)
-                offspring['objective'] = np.round(fitness, 5)
+                if fitness is not None:
+                    offspring['objective'] = np.round(fitness, 5)
+                else:
+                    offspring['objective'] = 1e9  # Set large penalty value for failed evaluation
                 # End task to release resources
                 future.cancel()
 
