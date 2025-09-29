@@ -1126,3 +1126,183 @@ I've successfully fixed the `make run-is` command! The issue was caused by two p
    ```
 
 The `make run-is` command now works correctly and starts the Independent Set optimization process. The command was running successfully when you canceled it, which confirms the fix is working.
+
+████████████████████████████████████████████████████
+
+
+I'll help you modify the `IS_eoh_change_prompt_ACP.py` file to work the same way as `MVC_eoh_change_prompt_ACP.py`. Let me first examine both files to understand the differences and then make the necessary changes.
+
+
+[5 tools called]
+
+Now let me check the current IS file to see what needs to be changed:
+
+
+[1 tool called]
+
+Now I'll create a todo list to track the changes needed:
+
+
+[1 tool called]
+
+Now I'll start implementing the changes. First, let me update the EOH class initialization:
+
+
+[3 tools called]
+
+Now I'll add the checkpoint methods after the add2pop_prompt method:
+
+
+[2 tools called]
+
+Now I need to modify the run method to support checkpoint loading and saving. Let me find the current run method:
+
+
+[1 tool called]
+
+I need to replace the entire run method. Let me find where it ends:
+
+
+[1 tool called]
+
+Let me find the exact end of the run method:
+
+
+[1 tool called]
+
+Now I need to replace the entire run method. Let me do this in parts. First, I'll replace the initialization part:
+
+
+[1 tool called]
+
+Now I need to update the main loop to add checkpoint saving. Let me continue with the rest of the run method:
+
+
+[1 tool called]
+
+Now I need to continue updating the rest of the loop and add checkpoint saving. Let me find where the loop ends and add the checkpoint saving:
+
+
+[1 tool called]
+
+I notice there are some inconsistencies in variable names. Let me fix the variable names in the loop:
+
+
+[2 tools called]
+
+Now I need to update the EVOL class to pass the clear_checkpoint parameter and clear checkpoint on completion:
+
+
+[1 tool called]
+
+Let me find the EVOL class and update it:
+
+
+[2 tools called]
+
+Now I need to update the EVOL class to pass the clear_checkpoint parameter and clear checkpoint on completion:
+
+
+[1 tool called]
+
+Now I need to update the Methods class to pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+I need to find the Methods class and update it to pass the clear_checkpoint parameter. Let me find it:
+
+
+[2 tools called]
+
+I need to update the Methods class to pass the clear_checkpoint parameter. But first, I need to update the EVOL class to accept and pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to store the clear_checkpoint parameter and pass it to the Methods class:
+
+
+[1 tool called]
+
+Now I need to update the Methods class to accept and pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to update the get_method method to pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to update the EVOL run method to pass the clear_checkpoint parameter to the Methods class:
+
+
+[2 tools called]
+
+Now I need to add command line argument parsing for the --clear-checkpoint and --reset flags. Let me find the main execution section:
+
+
+[1 tool called]
+
+Now I need to add command line argument parsing and pass the clear_checkpoint parameter:
+
+
+[1 tool called]
+
+Now I need to pass the clear_checkpoint parameter to the EVOL initialization:
+
+
+[2 tools called]
+
+Now let me check for any linting errors in the file:
+
+
+[1 tool called]
+
+Perfect! Now let me create a summary of the changes I made to transform the `IS_eoh_change_prompt_ACP.py` file to work the same way as `MVC_eoh_change_prompt_ACP.py`:
+
+## Summary of Changes Made
+
+I have successfully modified the `IS_eoh_change_prompt_ACP.py` file to work the same way as `MVC_eoh_change_prompt_ACP.py` by adding checkpoint functionality. Here are the key changes:
+
+### 1. **Added Checkpoint Parameter to EOH Class**
+- Modified the `__init__` method to accept a `clear_checkpoint` parameter
+- Added `self.clear_checkpoint_flag` to track checkpoint clearing behavior
+
+### 2. **Added Checkpoint Management Methods**
+- **`save_checkpoint()`**: Saves current state (population, generation, operators, etc.) to a JSON file
+- **`load_checkpoint()`**: Loads state from checkpoint file if it exists
+- **`clear_checkpoint()`**: Removes the checkpoint file
+
+### 3. **Modified the Run Method**
+- Added checkpoint loading logic at the beginning of the run method
+- If a checkpoint exists and `clear_checkpoint` is False, the system resumes from the last saved state
+- If no checkpoint exists or `clear_checkpoint` is True, the system starts fresh
+- Added checkpoint saving at the end of each generation
+
+### 4. **Updated Class Hierarchy**
+- Modified the `EVOL` class to accept and pass the `clear_checkpoint` parameter
+- Updated the `Methods` class to accept and pass the `clear_checkpoint` parameter
+- Updated the `EOH` class instantiation to receive the `clear_checkpoint` parameter
+
+### 5. **Added Command Line Argument Support**
+- Added support for `--clear-checkpoint` and `--reset` command line arguments
+- The system will clear any existing checkpoint if these flags are provided
+
+### 6. **Added Checkpoint Cleanup**
+- The system automatically clears the checkpoint file upon successful completion
+- This prevents stale checkpoints from interfering with future runs
+
+### Key Features Now Available:
+
+1. **Resume Capability**: If the program is interrupted, it can resume from the last checkpoint
+2. **Manual Reset**: Use `--clear-checkpoint` or `--reset` flags to start fresh
+3. **Automatic Cleanup**: Checkpoints are automatically cleared on successful completion
+4. **State Preservation**: All important state (population, operators, generation number, etc.) is preserved
+
+The `IS_eoh_change_prompt_ACP.py` file now has the same checkpoint functionality as `MVC_eoh_change_prompt_ACP.py`, allowing for robust long-running experiments that can be resumed if interrupted.
+
+████████████████████████████████████████████████████
+
+

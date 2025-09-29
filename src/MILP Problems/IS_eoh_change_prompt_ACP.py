@@ -1791,9 +1791,10 @@ class InterfaceEC:
 class EOH:
 
     # Initialization
-    def __init__(self, paras, problem, select, manage, **kwargs):
+    def __init__(self, paras, problem, select, manage, clear_checkpoint=False, **kwargs):
 
-        self.prob = problem      # Define the problem
+        self.prob = problem
+        self.clear_checkpoint_flag = clear_checkpoint      # Define the problem
         self.select = select     # Define parent selection method
         self.manage = manage     # Define population management method
 
@@ -1864,6 +1865,44 @@ class EOH:
             if not is_duplicate:
                 population.append(off)
 
+    def save_checkpoint(self, population, generation, cross_operators, variation_operators, worst, change_flag, last):
+        """Save current state to checkpoint file"""
+        checkpoint_data = {
+            'generation': generation,
+            'population': population,
+            'cross_operators': cross_operators,
+            'variation_operators': variation_operators,
+            'worst': worst,
+            'change_flag': change_flag,
+            'last': last,
+            'timestamp': time.time()
+        }
+        checkpoint_file = self.output_path + "/checkpoint.json"
+        with open(checkpoint_file, 'w') as f:
+            json.dump(checkpoint_data, f, indent=5)
+        print(f"Checkpoint saved at generation {generation}")
+    
+    def load_checkpoint(self):
+        """Load state from checkpoint file if it exists"""
+        checkpoint_file = self.output_path + "/checkpoint.json"
+        if os.path.exists(checkpoint_file):
+            try:
+                with open(checkpoint_file, 'r') as f:
+                    checkpoint_data = json.load(f)
+                print(f"Checkpoint loaded from generation {checkpoint_data['generation']}")
+                return checkpoint_data
+            except Exception as e:
+                print(f"Error loading checkpoint: {e}")
+                return None
+        return None
+    
+    def clear_checkpoint(self):
+        """Clear checkpoint file"""
+        checkpoint_file = self.output_path + "/checkpoint.json"
+        if os.path.exists(checkpoint_file):
+            os.remove(checkpoint_file)
+            print("Checkpoint cleared")
+
 
     # Run EoH
     def run(self):
@@ -1874,7 +1913,7 @@ class EOH:
 
         # Set up the problem evaluation interface
         interface_prob = self.prob
-
+        
         # Set up prompt evolution
         interface_promt_cross = InterfaceEC_Prompt(self.pop_size_cross, self.m, self.api_endpoint, self.api_key, self.llm_model, self.debug_mode, self.select, self.exp_n_proc, self.prompt_timeout, self.problem_type)
         interface_promt_variation = InterfaceEC_Prompt(self.pop_size_variation, self.m, self.api_endpoint, self.api_key, self.llm_model, self.debug_mode, self.select, self.exp_n_proc, self.prompt_timeout, self.problem_type)
@@ -1884,92 +1923,103 @@ class EOH:
                                    timeout = self.timeout, use_numba=self.use_numba
                                    )
 
-        # Initialize the population
-        cross_operators = []
-        variation_operators = []
-        print("creating initial prompt:")
-        cross_operators_generated = interface_promt_cross.population_generation("initial_cross")
-        self.add2pop_prompt(cross_operators, cross_operators_generated) # Use the correct add2pop_prompt
-        #cross_operators = self.manage.population_management(cross_operators, self.pop_size_cross) # Removed as per `add2pop_prompt` logic
-        variation_operators_generated = interface_promt_variation.population_generation("initial_variation")
-        self.add2pop_prompt(variation_operators, variation_operators_generated) # Use the correct add2pop_prompt
-        #variation_operators = self.manage.population_management(variation_operators, self.pop_size_variation) # Removed as per `add2pop_prompt` logic
-        print(f"Prompt initial: ")
+        # Try to load checkpoint first (unless clear_checkpoint is set)
+        checkpoint_data = None
+        if not self.clear_checkpoint_flag:
+            checkpoint_data = self.load_checkpoint()
+        if checkpoint_data:
+            print("Resuming from checkpoint...")
+            population = checkpoint_data['population']
+            cross_operators = checkpoint_data['cross_operators']
+            variation_operators = checkpoint_data['variation_operators']
+            worst = checkpoint_data['worst']
+            change_flag = checkpoint_data['change_flag']
+            last = checkpoint_data['last']
+            n_start = checkpoint_data['generation'] + 1
+            print(f"Resuming from generation {n_start}")
+        else:
+            # Initialize population
+            cross_operators = []
+            variation_operators = []
+            print("creating initial prompt:")
+            cross_operators = interface_promt_cross.population_generation("initial_cross")
+            #cross_operators = self.manage.population_management(cross_operators, self.pop_size_cross)
+            variation_operators = interface_promt_variation.population_generation("initial_variation")
+            #variation_operators = self.manage.population_management(variation_operators, self.pop_size_variation)
+            print(f"Prompt initial: ")
+            
+            for prompt in cross_operators:
+                print("Cross Prompt: ", prompt['prompt'])
+            for prompt in variation_operators:
+                print("Variation Prompt: ", prompt['prompt'])
+            print("initial population has been created!")
 
-        for prompt in cross_operators:
-            print("Cross Prompt: ", prompt['prompt'])
-        for prompt in variation_operators:
-            print("Variation Prompt: ", prompt['prompt'])
-        print("initial prompt population has been created!")
 
+            print("=======================================")
+            population = []
+            print("creating initial population:")
+            population = interface_ec.population_generation()
+            population = self.manage.population_management(population, self.pop_size)
+
+            print(f"Pop initial: ")
+            for off in population:
+                print(" Obj: ", off['objective'], end="|")
+            print()
+            print("initial population has been created!")
+            # Save generated population to file
+            filename = self.output_path + "/results/pops/population_generation_0.json"
+            with open(filename, 'w') as f:
+                json.dump(population, f, indent=5)
+            n_start = 0
+            worst = []
+            change_flag = 0
+            last = -1
 
         print("=======================================")
-        population = []
-        print("creating initial algorithm population:")
-        population_generated = interface_ec.population_generation()
-        self.add2pop(population, population_generated) # Use add2pop to add generated algorithms
-        population = self.manage.population_management(population, self.pop_size)
 
-        print(f"Algorithm Pop initial: ")
-        for off in population:
-            print(" Obj: ", off['objective'], end="|")
-        print()
-        print("initial algorithm population has been created!")
-        # Save the generated population to a file
-        filename = self.output_path + "/results/pops/population_generation_0.json"
-        with open(filename, 'w') as f:
-            json.dump(population, f, indent=5)
-        n_start = 0
-
-        print("=======================================")
-
-        # n_op indicates the number of evolution operators (this is for algorithm ops, not prompt ops)
-        # n_op = len(self.operators) # Not directly used in the loop below
+        # n_op: number of evolution operations
+        n_op = len(self.operators)
         worst = []
         delay_turn = 3
         change_flag = 0
         last = -1
         max_k = 4
-        # n_pop indicates how many generations to run
-        for pop_gen in range(n_start, self.n_pop):
-            #print(f" [{na + 1} / {self.pop_size}] ", end="|")
-            if change_flag:
+        # n_pop: number of populations/iterations to run
+        for pop in range(n_start, self.n_pop):  
+            #print(f" [{na + 1} / {self.pop_size}] ", end="|")    
+            if(change_flag):
                 change_flag -= 1
-                if change_flag == 0:
+                if(change_flag == 0):
                     cross_operators = self.manage.population_management(cross_operators, self.pop_size_cross)
-                    print("Updated Cross Prompts:")
                     for prompt in cross_operators:
                         print("Cross Prompt: ", prompt['prompt'])
 
                     variation_operators = self.manage.population_management(variation_operators, self.pop_size_variation)
-                    print("Updated Variation Prompts:")
                     for prompt in variation_operators:
                         print("Variation Prompt: ", prompt['prompt'])
 
-            if(len(worst) >= delay_turn and worst[-1] == worst[-delay_turn] and pop_gen - last > delay_turn):
-                print(f"Objective stagnant for {delay_turn} turns, evolving prompts...")
-                parents, offsprings_cross_prompt = interface_promt_cross.get_algorithm(cross_operators, 'cross')
-                self.add2pop_prompt(cross_operators, offsprings_cross_prompt)
-                parents, offsprings_variation_prompt = interface_promt_cross.get_algorithm(cross_operators, 'variation')
-                self.add2pop_prompt(cross_operators, offsprings_variation_prompt)
-                print("New Cross Prompts:")
-                for prompt_obj in cross_operators:
-                    print("Cross Prompt: ", prompt_obj['prompt'])
-                    prompt_obj["objective"] = 1e9 # Reset objective for newly generated prompts
-                    prompt_obj["number"] = [] # Reset number for newly generated prompts
+            if(len(worst) >= delay_turn and worst[-1] == worst[-delay_turn] and pop - last > delay_turn):
+                parents, offsprings = interface_promt_cross.get_algorithm(cross_operators, 'cross')
+                #print(offsprings)
+                self.add2pop_prompt(cross_operators, offsprings)
+                parents, offsprings = interface_promt_cross.get_algorithm(cross_operators, 'variation')
+                self.add2pop_prompt(cross_operators, offsprings)
+                for prompt in cross_operators:
+                    print("Cross Prompt: ", prompt['prompt'])
+                    prompt["objective"] = 1e9 # Reset objective for newly generated prompts
+                    prompt["number"] = [] # Reset number for newly generated prompts
 
-                parents, offsprings_cross_var_prompt = interface_promt_variation.get_algorithm(variation_operators, 'cross')
-                self.add2pop_prompt(variation_operators, offsprings_cross_var_prompt)
-                parents, offsprings_variation_var_prompt = interface_promt_variation.get_algorithm(variation_operators, 'variation')
-                self.add2pop_prompt(variation_operators, offsprings_variation_var_prompt)
-                print("New Variation Prompts:")
-                for prompt_obj in variation_operators:
-                    print("Variation Prompt: ", prompt_obj['prompt'])
-                    prompt_obj["objective"] = 1e9 # Reset objective for newly generated prompts
-                    prompt_obj["number"] = [] # Reset number for newly generated prompts
+                parents, offsprings = interface_promt_variation.get_algorithm(variation_operators, 'cross')
+                self.add2pop_prompt(variation_operators, offsprings)
+                parents, offsprings = interface_promt_variation.get_algorithm(variation_operators, 'variation')
+                self.add2pop_prompt(variation_operators, offsprings)
+                for prompt in variation_operators:
+                    print("Variation Prompt: ", prompt['prompt'])
+                    prompt["objective"] = 1e9 # Reset objective for newly generated prompts
+                    prompt["number"] = [] # Reset number for newly generated prompts
 
                 change_flag = 2
-                last = pop_gen
+                last = pop
 
             # First, consider the crossover operation.
             for i in range(len(cross_operators)):
@@ -2073,17 +2123,20 @@ class EOH:
             '''
 
             # Save the population to a file; each generation has its own file.
-            filename = self.output_path + "/results/pops/population_generation_" + str(pop_gen + 1) + ".json"
+            filename = self.output_path + "/results/pops/population_generation_" + str(pop + 1) + ".json"
             with open(filename, 'w') as f:
                 json.dump(population, f, indent=5)
 
             # Save the best individual of the population to a file; each generation has its own file.
-            filename = self.output_path + "/results/pops_best/population_generation_" + str(pop_gen + 1) + ".json"
+            filename = self.output_path + "/results/pops_best/population_generation_" + str(pop + 1) + ".json"
             with open(filename, 'w') as f:
                 json.dump(population[0], f, indent=5)
 
+            # Save checkpoint every generation
+            self.save_checkpoint(population, pop, cross_operators, variation_operators, worst, change_flag, last)
+
             # Output time in minutes.
-            print(f"--- {pop_gen + 1} of {self.n_pop} populations finished. Time Cost:  {((time.time()-time_start)/60):.1f} m")
+            print(f"--- {pop + 1} of {self.n_pop} populations finished. Time Cost:  {((time.time()-time_start)/60):.1f} m")
             print("Pop Objs: ", end=" ")
             # Output the objective values of the remaining population after management.
             for i in range(len(population)):
@@ -2095,9 +2148,10 @@ class EOH:
 class Methods:
     # Set parent selection methods and population management methods,
     # which is quite interesting as it maps strings to function methods.
-    def __init__(self, paras, problem) -> None:
+    def __init__(self, paras, problem, clear_checkpoint=False) -> None:
         self.paras = paras
         self.problem = problem
+        self.clear_checkpoint = clear_checkpoint
         if paras.selection == "prob_rank":
             self.select = prob_rank
         elif paras.selection == "equal":
@@ -2124,14 +2178,14 @@ class Methods:
     def get_method(self):
         # Must run EoH
         if self.paras.method == "eoh":
-            return EOH(self.paras,self.problem,self.select,self.manage)
+            return EOH(self.paras,self.problem,self.select,self.manage,self.clear_checkpoint)
         else:
             print("method "+self.method+" has not been implemented!")
             exit()
 
 class EVOL:
     # Initialization
-    def __init__(self, paras, prob=None, **kwargs):
+    def __init__(self, paras, prob=None, clear_checkpoint=False, **kwargs):
 
         print("----------------------------------------- ")
         print("---              Start EoH            ---")
@@ -2141,6 +2195,7 @@ class EVOL:
         print("- output folder created -")
 
         self.paras = paras
+        self.clear_checkpoint = clear_checkpoint
 
         print("-  parameters loaded -")
 
@@ -2157,7 +2212,7 @@ class EVOL:
 
         problem = problemGenerator.get_problem()
 
-        methodGenerator = Methods(self.paras,problem)
+        methodGenerator = Methods(self.paras,problem,self.clear_checkpoint)
 
         method = methodGenerator.get_method()
 
@@ -2167,11 +2222,19 @@ class EVOL:
         print("----------------------------------------- ")
         print("---     EoH successfully finished !   ---")
         print("-----------------------------------------")
+        
+        # Clear checkpoint on successful completion
+        if hasattr(method, 'clear_checkpoint'):
+            method.clear_checkpoint()
 
 
 
 # Parameter initialization #
 paras = Paras()
+
+# Check for checkpoint control argument
+import sys
+clear_checkpoint = "--clear-checkpoint" in sys.argv or "--reset" in sys.argv
 
 # Set parameters #
 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "your_llm_endpoint")
@@ -2196,7 +2259,7 @@ paras.set_paras(method = "eoh",    # ['ael','eoh']
                 exp_debug_mode = False)
 
 # Initialization
-evolution = EVOL(paras)
+evolution = EVOL(paras, clear_checkpoint=clear_checkpoint)
 
 # Run
 evolution.run()
