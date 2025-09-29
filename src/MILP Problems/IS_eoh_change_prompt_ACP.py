@@ -524,9 +524,12 @@ class PROBLEMCONST:
                     continue
                 now_sol = new_sol
                 turn_ans.append(now_val)
-                if(len(turn_ans) > 3 and abs(turn_ans[-1] - turn_ans[-3]) <= self.epsilon *  turn_ans[-1] and parts >= 3):
+                if(len(turn_ans) > 3 and turn_ans[-1] is not None and turn_ans[-3] is not None and abs(turn_ans[-1] - turn_ans[-3]) <= self.epsilon *  turn_ans[-1] and parts >= 3):
                     parts -= 1
-            return -turn_ans[-1]
+            if turn_ans[-1] is not None:
+                return -turn_ans[-1]
+            else:
+                return 1e9
         except Exception as e:
             print(f"MILP Error: {e}")
             traceback.print_exc()
@@ -572,6 +575,8 @@ class PROBLEMCONST:
             traceback.print_exc()
             results = [1e9]
 
+        if len(results) == 0:
+            return 1e9  # Return a large value if no results
         return sum(results) / len(results)
 
 
@@ -943,9 +948,10 @@ class InterfaceEC_Prompt:
             'number': None
         }
         off_set = []
+        parents = None  # Initialize parents variable
+        
         # Get initial prompt
         if operator == "initial_cross":
-            #parents = [] # This line is redundant, parents is not used for initial operator
             prompt_list =  self.evol.initialize("cross")
             for prompt in prompt_list:
                 offspring = {
@@ -958,7 +964,6 @@ class InterfaceEC_Prompt:
                 offspring["number"] = []
                 off_set.append(offspring)
         elif operator == "initial_variation":
-            #parents = [] # This line is redundant, parents is not used for initial operator
             prompt_list =  self.evol.initialize("variation")
             for prompt in prompt_list:
                 offspring = {
