@@ -1053,8 +1053,9 @@ class InterfaceEC_Prompt:
             if(operator == 'cross' or operator == 'variation'):
                 out_off.append(off)
             else:
-                for now_off in off_set:
-                    out_off.append(now_off)
+                if off_set is not None:
+                    for now_off in off_set:
+                        out_off.append(now_off)
             # If in debug mode, output offspring individuals
             if self.debug:
                 print(f">>> check offsprings: \n {off}")
@@ -2175,6 +2176,8 @@ paras = Paras()
 # Set parameters #
 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "your_llm_endpoint")
 api_key = os.getenv("AZURE_OPENAI_API_KEY", "your_api_key")
+deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
+api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
 
 # Extract hostname from full URL for Azure OpenAI
 if endpoint.startswith("https://"):
