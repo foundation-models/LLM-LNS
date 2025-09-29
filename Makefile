@@ -1,4 +1,4 @@
-.PHONY: help install sync dev clean lint format test run-tsp run-mvc test-mvc test-is test-sc test-all setup-env
+.PHONY: help install sync dev clean lint format test run-tsp run-mvc run-is run-sc run-miks run-bp test-mvc test-is test-sc test-all setup-env
 
 # Load environment variables from .env file
 ifneq (,$(wildcard .env))
@@ -42,6 +42,18 @@ run-tsp: ## Run TSP example
 
 run-mvc: ## Run MVC example
 	uv run --env-file .env python src/MILP\ Problems/MVC_eoh_change_prompt_ACP.py
+
+run-is: ## Run Independent Set example
+	uv run --env-file .env python src/MILP\ Problems/IS_eoh_change_prompt_ACP.py
+
+run-sc: ## Run Set Cover example
+	uv run --env-file .env python src/MILP\ Problems/SC_eoh_change_prompt_ACP.py
+
+run-miks: ## Run Maximum Independent K-Set example
+	uv run --env-file .env python src/MILP\ Problems/MIKS_eoh_change_prompt_ACP.py
+
+run-bp: ## Run Online Bin Packing example
+	uv run --env-file .env python src/Combinatorial\ Optimization\ Problems/Online\ Bin\ Packing/bp_eoh_change_prompt.py
 
 # Test system with different problem types
 test-mvc: ## Test Minimum Vertex Cover problem

@@ -663,12 +663,11 @@ class InterfaceAPI:
                 ],
             }
         )
-        # Define request headers
+        # Define request headers for Azure OpenAI
         headers = {
-            "Authorization": "Bearer " + self.api_key,           # Contains API key for authentication.
+            "api-key": self.api_key,                             # Azure OpenAI uses api-key header instead of Authorization Bearer
             "User-Agent": "Apifox/1.0.0 (https://apifox.com)",   # Identifies the client information.
             "Content-Type": "application/json",                  # Specifies request content type as JSON.
-            "x-api2d-no-cache": 1,                               # Custom header to control caching behavior.
         }
 
         response = None   # Initialize response variable to None, used to store API response content.
@@ -684,8 +683,12 @@ class InterfaceAPI:
             try:
                 # Create an HTTPS connection to the API endpoint.
                 conn = http.client.HTTPSConnection(self.api_endpoint)
-                # Send a POST request to the /v1/chat/completions endpoint, passing the request payload and headers.
-                conn.request("POST", "/v1/chat/completions", payload_explanation, headers)
+                # Send a request to the Azure OpenAI endpoint using the POST method, passing the request payload and headers.
+                # Azure OpenAI uses: /openai/deployments/{deployment}/chat/completions?api-version={api-version}
+                deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
+                api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+                path = f"/openai/deployments/{deployment}/chat/completions?api-version={api_version}"
+                conn.request("POST", path, payload_explanation, headers)
                 # Get the request response.
                 res = conn.getresponse()
                 # Read the response content.
@@ -2170,10 +2173,19 @@ class EVOL:
 paras = Paras()
 
 # Set parameters #
+endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "your_llm_endpoint")
+api_key = os.getenv("AZURE_OPENAI_API_KEY", "your_api_key")
+
+# Extract hostname from full URL for Azure OpenAI
+if endpoint.startswith("https://"):
+    endpoint = endpoint.replace("https://", "").rstrip("/")
+elif endpoint.startswith("http://"):
+    endpoint = endpoint.replace("http://", "").rstrip("/")
+
 paras.set_paras(method = "eoh",    # ['ael','eoh']
                 problem = "milp_construct", #['milp_construct','bp_online']
-                llm_api_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "your_llm_endpoint"), # set your LLM endpoint
-                llm_api_key = os.getenv("AZURE_OPENAI_API_KEY", "your_api_key"),   # set your key
+                llm_api_endpoint = endpoint, # set your LLM endpoint
+                llm_api_key = api_key,   # set your key
                 llm_model = "gpt-4o-mini",
                 ec_pop_size = 4, # number of samples in each population
                 ec_n_pop = 20,  # number of populations
